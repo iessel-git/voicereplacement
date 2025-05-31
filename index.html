@@ -13,10 +13,14 @@
     .input-group { margin-top: 20px; }
     input { padding: 10px; width: 70%; border: 1px solid #ccc; border-radius: 6px; }
     button.speak-btn { padding: 10px; margin-left: 10px; background: green; color: white; border: none; border-radius: 6px; }
+    select { margin-top: 20px; padding: 10px; width: 100%; border-radius: 6px; }
   </style>
 </head>
 <body>
   <h1>🗣️ Real-Time Voice Assistant</h1>
+
+  <label for="voiceSelect">Select Voice:</label>
+  <select id="voiceSelect"></select>
 
   <div class="grid" id="phraseButtons"></div>
 
@@ -33,16 +37,35 @@
       "Thank you!",
       "Yes",
       "No",
-      "Hey Buddy",
-      "Hey Whats up",
-      "I need to travel next month",
-    
     ];
 
     const synth = window.speechSynthesis;
+    let voices = [];
+    let selectedVoice = null;
+
+    const voiceSelect = document.getElementById("voiceSelect");
+
+    function populateVoiceList() {
+      voices = synth.getVoices();
+      voiceSelect.innerHTML = '';
+
+      voices.forEach((voice, index) => {
+        const option = document.createElement('option');
+        option.textContent = `${voice.name} (${voice.lang})${voice.default ? ' — DEFAULT' : ''}`;
+        option.value = index;
+        voiceSelect.appendChild(option);
+      });
+
+      selectedVoice = voices[0];
+    }
+
+    voiceSelect.addEventListener('change', () => {
+      selectedVoice = voices[parseInt(voiceSelect.value)];
+    });
 
     function speak(text) {
       const utterance = new SpeechSynthesisUtterance(text);
+      utterance.voice = selectedVoice;
       utterance.rate = 1;
       utterance.pitch = 1;
       synth.speak(utterance);
@@ -57,7 +80,6 @@
       }
     }
 
-    // Load quick phrase buttons
     const buttonContainer = document.getElementById("phraseButtons");
     phrases.forEach((phrase) => {
       const btn = document.createElement("button");
@@ -67,12 +89,17 @@
       buttonContainer.appendChild(btn);
     });
 
-    // Enter key also triggers speak
     document.getElementById("customText").addEventListener("keypress", function(e) {
       if (e.key === "Enter") {
         speakTypedText();
       }
     });
+
+    // Voice list might be loaded asynchronously
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populateVoiceList;
+    }
+    populateVoiceList(); // Call initially too
   </script>
 </body>
 </html>
