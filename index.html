@@ -54,6 +54,7 @@
       "No",
     ];
 
+    // Load available voices
     function populateVoiceList() {
       voices = synth.getVoices();
       voiceSelect.innerHTML = '';
@@ -63,27 +64,38 @@
         option.value = index;
         voiceSelect.appendChild(option);
       });
-      selectedVoice = voices[0];
+
+      // Set default selected voice
+      if (voices.length > 0) {
+        selectedVoice = voices[0];
+        voiceSelect.value = 0;
+      }
     }
 
+    // React to voice selection
     voiceSelect.addEventListener('change', () => {
       selectedVoice = voices[parseInt(voiceSelect.value)];
     });
 
     async function translateText(text, targetLang) {
-      if (targetLang === 'en') return text; // no translation
-      const response = await fetch('https://libretranslate.de/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          q: text,
-          source: "en",
-          target: targetLang,
-          format: "text"
-        })
-      });
-      const data = await response.json();
-      return data.translatedText;
+      if (targetLang === 'en') return text;
+      try {
+        const response = await fetch('https://libretranslate.de/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            q: text,
+            source: "en",
+            target: targetLang,
+            format: "text"
+          })
+        });
+        const data = await response.json();
+        return data.translatedText;
+      } catch (err) {
+        console.error('Translation failed:', err);
+        return text;
+      }
     }
 
     async function translateAndSpeak(text = null) {
@@ -93,11 +105,14 @@
 
       const translated = await translateText(rawText, langSelect.value);
       speak(translated);
-
       if (!text) input.value = '';
     }
 
     function speak(text) {
+      if (!selectedVoice) {
+        alert("Voice not loaded yet. Please wait.");
+        return;
+      }
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.voice = selectedVoice;
       utterance.rate = 1;
@@ -105,6 +120,7 @@
       synth.speak(utterance);
     }
 
+    // Create buttons
     const buttonContainer = document.getElementById("phraseButtons");
     phrases.forEach((phrase) => {
       const btn = document.createElement("button");
@@ -120,10 +136,12 @@
       }
     });
 
+    // Ensure voices load correctly
     if (speechSynthesis.onvoiceschanged !== undefined) {
       speechSynthesis.onvoiceschanged = populateVoiceList;
+    } else {
+      setTimeout(populateVoiceList, 500);
     }
-    populateVoiceList();
   </script>
 </body>
 </html>
