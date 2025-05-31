@@ -3,33 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Real-Time Voice Assistant</title>
+  <title>Voice Assistant with Translation</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f0f8ff; }
     h1 { font-size: 24px; }
     .grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
     .phrase-btn { padding: 10px 20px; background: #007acc; color: white; border: none; border-radius: 8px; cursor: pointer; }
-    .phrase-btn:hover { background: #005fa3; }
     .input-group { margin-top: 20px; }
-    input { padding: 10px; width: 70%; border: 1px solid #ccc; border-radius: 6px; }
+    input, select { padding: 10px; width: 70%; border: 1px solid #ccc; border-radius: 6px; }
     button.speak-btn { padding: 10px; margin-left: 10px; background: green; color: white; border: none; border-radius: 6px; }
-    select { margin-top: 20px; padding: 10px; width: 100%; border-radius: 6px; }
+    #voiceSelect, #langSelect { margin-top: 10px; width: 100%; }
   </style>
 </head>
 <body>
-  <h1>🗣️ Real-Time Voice Assistant</h1>
+  <h1>🗣️ Voice Assistant with AI Translation</h1>
 
   <label for="voiceSelect">Select Voice:</label>
   <select id="voiceSelect"></select>
+
+  <label for="langSelect">Translate To:</label>
+  <select id="langSelect">
+    <option value="fr">French</option>
+    <option value="es">Spanish</option>
+    <option value="de">German</option>
+    <option value="zh">Chinese</option>
+    <option value="en">English (no translation)</option>
+  </select>
 
   <div class="grid" id="phraseButtons"></div>
 
   <div class="input-group">
     <input type="text" id="customText" placeholder="Type and press Enter or click Speak" />
-    <button class="speak-btn" onclick="speakTypedText()">Speak</button>
+    <button class="speak-btn" onclick="translateAndSpeak()">Speak</button>
   </div>
 
   <script>
+    const synth = window.speechSynthesis;
+    let voices = [];
+    let selectedVoice = null;
+
+    const voiceSelect = document.getElementById("voiceSelect");
+    const langSelect = document.getElementById("langSelect");
+
     const phrases = [
       "Hello",
       "I'm not feeling well today.",
@@ -37,32 +52,50 @@
       "Thank you!",
       "Yes",
       "No",
-      "Going to do interior patrol",
     ];
-
-    const synth = window.speechSynthesis;
-    let voices = [];
-    let selectedVoice = null;
-
-    const voiceSelect = document.getElementById("voiceSelect");
 
     function populateVoiceList() {
       voices = synth.getVoices();
       voiceSelect.innerHTML = '';
-
       voices.forEach((voice, index) => {
         const option = document.createElement('option');
-        option.textContent = `${voice.name} (${voice.lang})${voice.default ? ' — DEFAULT' : ''}`;
+        option.textContent = `${voice.name} (${voice.lang})`;
         option.value = index;
         voiceSelect.appendChild(option);
       });
-
       selectedVoice = voices[0];
     }
 
     voiceSelect.addEventListener('change', () => {
       selectedVoice = voices[parseInt(voiceSelect.value)];
     });
+
+    async function translateText(text, targetLang) {
+      if (targetLang === 'en') return text; // no translation
+      const response = await fetch('https://libretranslate.de/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          q: text,
+          source: "en",
+          target: targetLang,
+          format: "text"
+        })
+      });
+      const data = await response.json();
+      return data.translatedText;
+    }
+
+    async function translateAndSpeak(text = null) {
+      const input = document.getElementById("customText");
+      const rawText = text || input.value.trim();
+      if (!rawText) return;
+
+      const translated = await translateText(rawText, langSelect.value);
+      speak(translated);
+
+      if (!text) input.value = '';
+    }
 
     function speak(text) {
       const utterance = new SpeechSynthesisUtterance(text);
@@ -72,35 +105,25 @@
       synth.speak(utterance);
     }
 
-    function speakTypedText() {
-      const input = document.getElementById("customText");
-      const text = input.value.trim();
-      if (text) {
-        speak(text);
-        input.value = '';
-      }
-    }
-
     const buttonContainer = document.getElementById("phraseButtons");
     phrases.forEach((phrase) => {
       const btn = document.createElement("button");
       btn.innerText = phrase;
       btn.className = "phrase-btn";
-      btn.onclick = () => speak(phrase);
+      btn.onclick = () => translateAndSpeak(phrase);
       buttonContainer.appendChild(btn);
     });
 
     document.getElementById("customText").addEventListener("keypress", function(e) {
       if (e.key === "Enter") {
-        speakTypedText();
+        translateAndSpeak();
       }
     });
 
-    // Voice list might be loaded asynchronously
     if (speechSynthesis.onvoiceschanged !== undefined) {
       speechSynthesis.onvoiceschanged = populateVoiceList;
     }
-    populateVoiceList(); // Call initially too
+    populateVoiceList();
   </script>
 </body>
 </html>
