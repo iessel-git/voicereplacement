@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Real-Time Voice Assistant</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f8ff; }
+    h1 { font-size: 24px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .phrase-btn { padding: 10px 20px; background: #007acc; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .phrase-btn:hover { background: #005fa3; }
+    .input-group { margin-top: 20px; }
+    input { padding: 10px; width: 70%; border: 1px solid #ccc; border-radius: 6px; }
+    button.speak-btn { padding: 10px; margin-left: 10px; background: green; color: white; border: none; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>🗣️ Real-Time Voice Assistant</h1>
+
+  <div class="grid" id="phraseButtons"></div>
+
+  <div class="input-group">
+    <input type="text" id="customText" placeholder="Type and press Enter or click Speak" />
+    <button class="speak-btn" onclick="speakTypedText()">Speak</button>
+  </div>
+
+  <script>
+    const phrases = [
+      "Hello",
+      "I'm not feeling well today.",
+      "Please wait a moment.",
+      "Thank you!",
+      "Yes",
+      "No",
+    ];
+
+    const synth = window.speechSynthesis;
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      synth.speak(utterance);
+    }
+
+    function speakTypedText() {
+      const input = document.getElementById("customText");
+      const text = input.value.trim();
+      if (text) {
+        speak(text);
+        input.value = '';
+      }
+    }
+
+    // Load quick phrase buttons
+    const buttonContainer = document.getElementById("phraseButtons");
+    phrases.forEach((phrase) => {
+      const btn = document.createElement("button");
+      btn.innerText = phrase;
+      btn.className = "phrase-btn";
+      btn.onclick = () => speak(phrase);
+      buttonContainer.appendChild(btn);
+    });
+
+    // Enter key also triggers speak
+    document.getElementById("customText").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        speakTypedText();
+      }
+    });
+  </script>
+</body>
+</html>
